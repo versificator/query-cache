@@ -3,24 +3,12 @@ package main
 import (
 "fmt"
 "github.com/Jeffail/gabs"
-"time"
 "reflect"
 "bytes"
 "strings"
 "log"
 )
 
-type Query struct {
-	HourGroup     bool      `json:"hourGroup"` //flag, is hourly breakdown required
-	DateTimeStart time.Time `json:"dateTimeStart"`
-	DateTimeEnd   time.Time `json:"dateTimeEnd"`
-	Select        []string  `json:"select"`
-	From          []string  `json:"from"`
-	PreWhere      []string  `json:"preWhere"`
-	Where         []string  `json:"where"`
-	Range         []string  `json:"range"`
-	Dimension     []string  `json:"groupBy"` //groupBy columns
-}
 
 var JSONAttr = []string {"$select", "$from", "$preWhere", "$where", "$groupBy", "$having", "$globalRangePreWhere", "$globalRangeWhere"}
 
@@ -28,11 +16,11 @@ func  parseRoot(json *string) {
 	sample := []byte(*json)
 	jsonParsed, _ := gabs.ParseJSON(sample)
 	child := jsonParsed.Search("$query").Data()
-	fmt.Println("\n\n\n\n\n\n", parseRootRawJSON(child))
+	fmt.Println("\n\n\n\n\n\n", toString(parseRootRawJSON(child)))
 }
 
 
-func parseRootRawJSON(object interface{}) string {
+func parseRootRawJSON(object interface{}) map[string]string{
 	result := make(map[string]string,8)
 
 	if reflect.TypeOf(object).String() == "string" {
@@ -48,13 +36,13 @@ func parseRootRawJSON(object interface{}) string {
 			if keyLevel1 == "$where" || keyLevel1 == "$preWhere" || keyLevel1 == "$globalRangePreWhere" || keyLevel1 == "$globalRangeWhere" {
 				for keyLevel2, valueLevel2 := range valueLevel1.(map[string]interface{}) {
 					log.Println(keyLevel2, " LEVEL2(WHERE) ", valueLevel2)
-					result[keyLevel1] = concat( " 1=1 ")
+			//		result[keyLevel1] = concat( " 1=1 ")
 					if keyLevel2 == "$and" {
 						for keyLevel3, valueLevel3 := range valueLevel2.(map[string]interface{}) {
 							log.Println(keyLevel3, " LEVEL2(WHERE) ", valueLevel3)
 							if keyLevel3 == "$range" {
-								if keyLevel1 == "$where" {result[keyLevel1] = concat(result[keyLevel1], " and $globalRangeWhere ")
-								} else if keyLevel1 == "$preWhere" {result[keyLevel1] = concat(result[keyLevel1], " and $globalRangePreWhere ")}
+								if keyLevel1 == "$where" {result[keyLevel1] = concat(result[keyLevel1], " $globalRangeWhere and ")
+								} else if keyLevel1 == "$preWhere" {result[keyLevel1] = concat(result[keyLevel1], "$globalRangePreWhere and ")}
 								log.Println("Result:                          ", keyLevel1,"  ",result[keyLevel1])
 							} else if keyLevel3 == "$in" {
 								if reflect.TypeOf(valueLevel3).String() == "map[string]interface {}" {
@@ -62,10 +50,10 @@ func parseRootRawJSON(object interface{}) string {
 										log.Println(keyLevel4, " LEVEL5(WHERE) ", valueLevel4)
 										if  reflect.TypeOf(valueLevel4).String() == "map[string]interface {}"{
 											for keyLevel5, valueLevel5 := range valueLevel4.(map[string]interface{}){
-												if keyLevel5 =="$query" {result[keyLevel1] = concat(result[keyLevel1]," and ", keyLevel4  ," in (",  parseRootRawJSON(valueLevel5),")")}
+												if keyLevel5 =="$query" {result[keyLevel1] = concat(result[keyLevel1], keyLevel4  ," in (", toString(parseRootRawJSON(valueLevel5.(interface{}))),") and ")}
 										}
 										} else if reflect.TypeOf(valueLevel4).String() == "string"{
-											result[keyLevel1] = concat(result[keyLevel1]," and ", keyLevel4," in (", valueLevel4.(string),")")
+											result[keyLevel1] = concat(result[keyLevel1], keyLevel4," in (", valueLevel4.(string),") and ")
 										}
 									}
 									log.Println("Result:                          ", keyLevel1, "  ", result[keyLevel1])
@@ -75,17 +63,19 @@ func parseRootRawJSON(object interface{}) string {
 									log.Println(keyLevel4, " LEVEL4(WHERE) ", valueLevel4)
                                       if reflect.TypeOf(valueLevel4).String() == "map[string]interface {}" {
 										for keyLevel5, valueLevel5 := range valueLevel4.(map[string]interface{}) {
-											result[keyLevel1] = concat(result[keyLevel1], " and ", keyLevel5, keyLevel4, valueLevel5.(string))
+											result[keyLevel1] = concat(result[keyLevel1], keyLevel5, keyLevel4, valueLevel5.(string)," and ")
 											log.Println("Result:                          ", keyLevel1, "  ", result[keyLevel1])
 										}
 									} else {
-										result[keyLevel1] = concat(result[keyLevel1], " and ", keyLevel4, keyLevel3, valueLevel4.(string))
+										result[keyLevel1] = concat(result[keyLevel1], keyLevel4, keyLevel3, valueLevel4.(string), " and ")
 										  log.Println("Result:                          ", keyLevel1, "  ", result[keyLevel1])
 									}
 
 								}
 							}
 						}
+						log.Println("TRIMRIGHT")
+						result[keyLevel1] = strings.TrimRight(result[keyLevel1]," and ")
 					}
 
 				}
@@ -136,7 +126,7 @@ func parseRootRawJSON(object interface{}) string {
 
 		}
 	}
-	return toString(result)
+	return result
 }
 
 func concat(values ...string) string {
