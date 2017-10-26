@@ -36,22 +36,24 @@ func parseRootRawJSON(object interface{}) map[string]string{
 			if keyLevel1 == "$where" || keyLevel1 == "$preWhere" || keyLevel1 == "$globalRangePreWhere" || keyLevel1 == "$globalRangeWhere" {
 				for keyLevel2, valueLevel2 := range valueLevel1.(map[string]interface{}) {
 					log.Println(keyLevel2, " LEVEL2(WHERE) ", valueLevel2)
-			//		result[keyLevel1] = concat( " 1=1 ")
 					if keyLevel2 == "$and" {
 						for keyLevel3, valueLevel3 := range valueLevel2.(map[string]interface{}) {
 							log.Println(keyLevel3, " LEVEL2(WHERE) ", valueLevel3)
 							if keyLevel3 == "$range" {
 								if keyLevel1 == "$where" {result[keyLevel1] = concat(result[keyLevel1], " $globalRangeWhere and ")
-								} else if keyLevel1 == "$preWhere" {result[keyLevel1] = concat(result[keyLevel1], "$globalRangePreWhere and ")}
+								} else if keyLevel1 == "$preWhere" {result[keyLevel1] = concat(result[keyLevel1], " $globalRangePreWhere and ")}
 								log.Println("Result:                          ", keyLevel1,"  ",result[keyLevel1])
 							} else if keyLevel3 == "$in" {
 								if reflect.TypeOf(valueLevel3).String() == "map[string]interface {}" {
 									for keyLevel4, valueLevel4 := range valueLevel3.(map[string]interface{}) {
 										log.Println(keyLevel4, " LEVEL5(WHERE) ", valueLevel4)
 										if  reflect.TypeOf(valueLevel4).String() == "map[string]interface {}"{
-											for keyLevel5, valueLevel5 := range valueLevel4.(map[string]interface{}){
-												if keyLevel5 =="$query" {result[keyLevel1] = concat(result[keyLevel1], keyLevel4  ," in (", toString(parseRootRawJSON(valueLevel5.(interface{}))),") and ")}
-										}
+											for keyLevel5, valueLevel5 := range valueLevel4.(map[string]interface{}) {
+												if keyLevel5 == "$query" {
+													result[keyLevel1] = concat(result[keyLevel1], keyLevel4, " in (", toString(parseRootRawJSON(valueLevel5.(interface{}))), ") and ")
+												}
+												log.Println("Nested query :", result[keyLevel1])
+											}
 										} else if reflect.TypeOf(valueLevel4).String() == "string"{
 											result[keyLevel1] = concat(result[keyLevel1], keyLevel4," in (", valueLevel4.(string),") and ")
 										}
@@ -70,7 +72,6 @@ func parseRootRawJSON(object interface{}) map[string]string{
 										result[keyLevel1] = concat(result[keyLevel1], keyLevel4, keyLevel3, valueLevel4.(string), " and ")
 										  log.Println("Result:                          ", keyLevel1, "  ", result[keyLevel1])
 									}
-
 								}
 							}
 						}
@@ -155,11 +156,16 @@ func toString(buf map[string]string) string {
 			if buf[y] !="" {result = concat(result, " \nhaving ", buf[y])}
 		case "$globalRangePreWhere":
 			{
-				result = strings.Replace(result, y, buf[y], len(result))
+				if buf[y] != "" {
+					result = strings.Replace(result, y, buf[y], len(result))
+				}
 			}
 		case "$globalRangeWhere":
 			{
-				result = strings.Replace(result, y, buf[y], len(result))
+				if buf[y] != "" {
+					log.Println("Replace ", y, " ", result, " ", buf[y])
+					result = strings.Replace(result, y, buf[y], len(result))
+				}
 			}
 		}
 		log.Println(result)
