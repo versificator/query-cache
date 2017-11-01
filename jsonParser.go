@@ -30,12 +30,21 @@ type JSON struct {
 
 var JSONAttr = []string {"$select", "$from", "$preWhere", "$where", "$groupBy", "$having", "$globalRangePreWhere", "$globalRangeWhere"}
 
+func getDateRange(g map[string]string) dateRange {
+	fmt.Println("asdf            ",g["$globalRangeWhere"])
+
+	l := dateRange{g["globalRangeWhere"],"",0,0}
+	return l
+}
+
 func  parseRoot(json *string) JSON {
 	j := JSON{json,"",dateRange{"","",0,0},nil,"test",cache{}}
 	sample := []byte(*json)
 	jsonParsed, _ := gabs.ParseJSON(sample)
 	child := jsonParsed.Search("$query").Data()
-	j.query = toString(parseRootRawJSON(child))
+	parsedJSON := parseRootRawJSON(child)
+	j.query = toString(parsedJSON)
+	j.dateRange = getDateRange(parsedJSON)
 	return j
 }
 

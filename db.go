@@ -8,7 +8,7 @@ import (
 
 )
 
-func getData(jsonRaw string) *sql.Rows {
+func getDataFromDB(jsonRaw string) *sql.Rows {
 	connect, err := sql.Open("clickhouse", "tcp://127.0.0.1:9000?debug=true")
 	if err != nil {
 		log.Fatalf("%s",err)
