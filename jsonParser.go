@@ -1,26 +1,47 @@
 package main
 
 import (
-"fmt"
 "github.com/Jeffail/gabs"
 "reflect"
 "bytes"
 "strings"
 "log"
+"encoding/json"
+"database/sql"
+
+	"fmt"
 )
 
+type dateRange struct{
+	startDate string
+	endDate string
+	startTimestamp uint8
+	endTimestamp uint8
+}
+
+type JSON struct {
+	rawJSON    *string
+	query      string
+	dateRange  dateRange
+	rows *sql.Rows
+	fileName   string
+	queryHash  cache
+}
 
 var JSONAttr = []string {"$select", "$from", "$preWhere", "$where", "$groupBy", "$having", "$globalRangePreWhere", "$globalRangeWhere"}
 
-func  parseRoot(json *string) {
+func  parseRoot(json *string) JSON {
+	j := JSON{json,"",dateRange{"","",0,0},nil,"test",cache{}}
 	sample := []byte(*json)
 	jsonParsed, _ := gabs.ParseJSON(sample)
 	child := jsonParsed.Search("$query").Data()
-	fmt.Println("\n\n\n\n\n\n", toString(parseRootRawJSON(child)))
+	j.query = toString(parseRootRawJSON(child))
+	return j
 }
 
-
 func parseRootRawJSON(object interface{}) map[string]string{
+
+
 	result := make(map[string]string,8)
 
 	if reflect.TypeOf(object).String() == "string" {
@@ -38,7 +59,7 @@ func parseRootRawJSON(object interface{}) map[string]string{
 					log.Println(keyLevel2, " LEVEL2(WHERE) ", valueLevel2)
 					if keyLevel2 == "$and" {
 						for keyLevel3, valueLevel3 := range valueLevel2.(map[string]interface{}) {
-							log.Println(keyLevel3, " LEVEL2(WHERE) ", valueLevel3)
+							log.Println(keyLevel3, " LEVEL3(WHERE) ", valueLevel3)
 							if keyLevel3 == "$range" {
 								if keyLevel1 == "$where" {result[keyLevel1] = concat(result[keyLevel1], " $globalRangeWhere and ")
 								} else if keyLevel1 == "$preWhere" {result[keyLevel1] = concat(result[keyLevel1], " $globalRangePreWhere and ")}
@@ -130,6 +151,134 @@ func parseRootRawJSON(object interface{}) map[string]string{
 	return result
 }
 
+//type object struct{}
+//
+//type Querier interface {
+//	ToQuery() string
+//}
+//
+//func (o object) ToQuery() string {
+//	return ""
+//	}
+////map["columns"] slice Querier
+//
+//type SelectExprs []SelectExpr
+//
+//type SelectExpr interface {
+//	iSelectExpr()
+//	SQLNode
+//}
+//
+//type AST struct {
+//
+//	SelectExprs SelectExprs
+//	From        TableExprs
+//	Where       *Where
+//	GroupBy     GroupBy
+//	Having      *Where
+//	OrderBy     OrderBy
+//	Limit       *Limit
+//	Lock        string
+//}
+
+//type AST struct {
+//	columns  []Querier
+//	from     []Querier
+//	where    []Querier
+//	preWhere []Querier
+//}
+
+//
+//func (a *AST) compile() string {
+//	var result string
+//	for _, c := range a.columns {
+//		result += c.ToQuery()
+//	}
+//	return result
+//}
+//
+//type condition struct {
+//	field    string
+//	operator string
+//	value    string
+//}
+//
+//func prepend(a []condition, b *condition) []condition{
+//	var result []condition
+//	result = append(result, condition{"","",""})
+//	return result
+//}
+//func (a *AST) toString() string {
+//	return " "
+//}
+//func parseRootRawJSON_2() {
+//	sql = `selectclo1, col2from(select * from table2)wherecondition`
+//
+//	c1 := &condition{field: "col1", operator: "=", value: "12"}
+//	a := &AST{}
+//	startDateCondition := &condition{field: "EventHour", operator: "=", value: "12"}
+//	endDateCondition := &condition{field: "EventDate", operator: "=", value: "today()"}
+//
+//	a.where = prepend(a.where, startDateCondition)
+//	a.where = prepend(a.where, endDateCondition)
+//
+//	sql := s.String()
+//
+//	string{}
+//	reg := map[string][]string
+//}
+//	func parse() {
+//		var root string
+//	tree := type Tree struct{}
+//
+//	for {
+//		token, ok := tree.getToken()
+//
+//		select col1
+//			col2
+//			from
+//			table
+//			where
+//
+//			if !ok {
+//				return
+//			}
+//			switch token {
+//			case "$from":
+//				root = "$from"
+//			case "$select":
+//				root = "$select"
+//				// do
+//			case "$where", "$preWhere", "$globalRangePreWhere", "$globalRangeWhere":
+//				// do
+//			default:
+//				if root != nil {
+//					reg[root] = []string{token}
+//					// add to current root level} else {
+//					// add to top level}}}}
+//
+//				}
+//			}
+//		}
+
+//remove range predicates from JSON
+func cleanJSON(jsonRaw *string) []byte {
+	sample := []byte(*jsonRaw)
+	jsonMap := make(map[string]interface{})
+	err := json.Unmarshal([]byte(sample), &jsonMap)
+	if err != nil {
+		panic(err)
+	}
+
+	jsonMap["$query"].(map[string]interface{})["$globalRangePreWhere"] = nil
+	jsonMap["$query"].(map[string]interface{})["$globalRangeWhere"] = nil
+	result, err := json.Marshal(jsonMap)
+	if err != nil {
+		panic(err)
+	}
+	return result
+}
+
 func concat(values ...string) string {
 	var buffer bytes.Buffer
 	for _, s := range values {
@@ -141,6 +290,7 @@ func concat(values ...string) string {
 func toString(buf map[string]string) string {
 	var result string
 	for _,y := range JSONAttr{
+		fmt.Print(result)
 		switch y {
 		case "$select":
 			result = concat(result, "select ", buf[y])
