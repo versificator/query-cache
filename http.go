@@ -8,9 +8,6 @@ import (
 	"github.com/Vertamedia/chproxy/log"
 	"strings"
 	"fmt"
-
-	"net/url"
-
 )
 
 type test_struct struct {
@@ -36,19 +33,19 @@ func ParseClientPost(rw http.ResponseWriter, request *http.Request) {
 	body, _ := ioutil.ReadAll(request.Body)
 	io.WriteString(rw, string(body))
 
-	//response := string(body)
 
-//	client := &http.Client{}
-	fmt.Println("\n\n/n/n/n/n/n AHTUNG /n/n/n/n")
 
-	data := url.Values{}
-	data.Set("name", "select 1")
+	request_body := string(body)
+	_ = request_body
+
+
 	req, err := http.NewRequest("GET", "http://localhost:9090?query=select%201%20union%20all%20select%202", nil)
 
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
+
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		fmt.Println(err)
@@ -58,14 +55,8 @@ func ParseClientPost(rw http.ResponseWriter, request *http.Request) {
 	response,err := ioutil.ReadAll(resp.Body)
 	fmt.Println(string(response))
 
-_ = resp
-	//fmt.Println(resp.Status)
-	//_, _ = err, response
-	//if checkIfCacheExists(&response) {
-	//
-	//} else {
-	//	getDataFromProxy(response)
-	//}
+
+
 	rw.WriteHeader(http.StatusOK)
 }
 //////////////////////////////
