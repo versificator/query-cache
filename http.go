@@ -36,14 +36,14 @@ func ParseClientPost(rw http.ResponseWriter, request *http.Request) {
     q := parse(request_body)
 
     fmt.Println(toString(q))
-	ff:=getHourRanges(q.Filter)
+	ff:=getHourRanges(q)
 	for _, element := range ff {
 		fmt.Print(element.StartDay," ")
 		fmt.Print(element.EndDay," ")
 		fmt.Print(element.StartHour," ")
 		fmt.Println(element.EndHour," ")
 
-		d := query{q.Query,element}
+		d := query{q.Query,element.StartHour,element.EndHour,element.StartDay,element.EndDay}
 
 		fmt.Println(toString(d))
 

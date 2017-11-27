@@ -9,31 +9,26 @@ import (
 
 )
 
-type RangeDate struct{
+type query struct {
+	Query      string    `json:"$query"`
 	StartHour uint32 `json:"$startHour,string"`
 	EndHour uint32 `json:"$endHour,string"`
 	StartDay time.Time `json:"$startDay,string"`
 	EndDay time.Time `json:"$endDay,string"`
 }
 
-
-type query struct {
-	Query      string    `json:"$query"`
-	Filter   RangeDate `json:"RangeDate"`
-}
-
 func  parse(rawJSON string) query {
 	var result query
 	bytes := []byte(rawJSON)
 
-	if err := json.Unmarshal(bytes, &result); err != nil {
+	if err := result.UnmarshalJSON(bytes); err != nil {
 		fmt.Println(err)
 	}
 	return result
 }
 
 
-func (l *RangeDate) UnmarshalJSON(j []byte) error {
+func (l *query) UnmarshalJSON(j []byte) error {
 	var rawStrings map[string]string
 
 	err := json.Unmarshal(j, &rawStrings)
@@ -42,7 +37,7 @@ func (l *RangeDate) UnmarshalJSON(j []byte) error {
 	}
 
 	for k, v := range rawStrings {
-		if strings.ToLower(k) == "$startHour" {
+		if strings.ToLower(k) == "$starthour" {
 
 			rb, err := strconv.Atoi(v)
 			l.StartHour = uint32((rb))
@@ -50,20 +45,30 @@ func (l *RangeDate) UnmarshalJSON(j []byte) error {
 				return err
 			}
 		}
-
-		if strings.ToLower(k) == "$endHour" {
+		if strings.ToLower(k) == "$query" {
+			l.Query = v
+		}
+		if strings.ToLower(k) == "$endhour" {
 			r, err := strconv.Atoi(v)
 			l.EndHour = uint32(r)
 			if err != nil {
 				return err
 			}
 		}
-		if strings.ToLower(k) == "$startDay" || strings.ToLower(k) == "$endDay" {
-			t, err := time.Parse("", v)
+		if strings.ToLower(k) == "$startday" {
+			t, err := time.Parse("2006-01-02", v)
 			if err != nil {
 				return err
 			}
 			l.StartDay = t
+		}
+
+		if strings.ToLower(k) == "$endday" {
+			t, err := time.Parse("2006-01-02", v)
+			if err != nil {
+				return err
+			}
+			l.EndDay = t
 		}
 	}
 
@@ -73,10 +78,10 @@ func (l *RangeDate) UnmarshalJSON(j []byte) error {
 
 
 func toString(buf query) string {
-	r := strings.NewReplacer("$startHour", string(buf.Filter.StartHour),
-		"$endHour", string(buf.Filter.EndHour),
-		"$startDay",  buf.Filter.StartDay.Format("2006-01-02"),
-		"$endDay", buf.Filter.EndDay.Format("2006-01-02"))
+	r := strings.NewReplacer("$startHour", fmt.Sprint(buf.StartHour),
+		"$endHour", fmt.Sprint(buf.EndHour),
+		"$startDay",  buf.StartDay.Format("2006-01-02"),
+		"$endDay", buf.EndDay.Format("2006-01-02"))
 
 	result := r.Replace(buf.Query)
 	return result
