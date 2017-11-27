@@ -8,11 +8,8 @@ import (
 	"github.com/Vertamedia/chproxy/log"
 	"strings"
 	"fmt"
+	"net/url"
 )
-
-type test_struct struct {
-	Test string
-}
 
 func StartHTTP(){
 	log.Infof("Serving https")
@@ -33,11 +30,42 @@ func ParseClientPost(rw http.ResponseWriter, request *http.Request) {
 	body, _ := ioutil.ReadAll(request.Body)
 	io.WriteString(rw, string(body))
 
-
-
 	request_body := string(body)
-	_ = request_body
 
+	fmt.Println("Request_body: ", request_body)
+    q := parse(request_body)
+
+    fmt.Println(toString(q))
+	ff:=getHourRanges(q.Filter)
+	for _, element := range ff {
+		fmt.Print(element.StartDay," ")
+		fmt.Print(element.EndDay," ")
+		fmt.Print(element.StartHour," ")
+		fmt.Println(element.EndHour," ")
+
+		d := query{q.Query,element}
+
+		fmt.Println(toString(d))
+
+
+		req, err := http.NewRequest("GET", "http://localhost:9090?query="+url.QueryEscape(toString(d)),nil)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		client := &http.Client{}
+		resp, err := client.Do(req)
+		f, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			fmt.Print(err)
+		}
+		resp.Body.Close()
+		if err != nil {
+			fmt.Print(err)
+		}
+		fmt.Println(string(f))
+	}
 
 	req, err := http.NewRequest("GET", "http://localhost:9090?query=select%201%20union%20all%20select%202", nil)
 
@@ -59,29 +87,7 @@ func ParseClientPost(rw http.ResponseWriter, request *http.Request) {
 
 	rw.WriteHeader(http.StatusOK)
 }
-//////////////////////////////
-
-
-func copyHeader(dst, src http.Header) {
-	for k, vv := range src {
-		for _, v := range vv {
-			dst.Add(k, v)
-		}
-	}
-}
-
-func handleHTTP(w http.ResponseWriter, req *http.Request) {
-	resp, err := http.DefaultTransport.RoundTrip(req)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusServiceUnavailable)
-		return
-	}
-	defer resp.Body.Close()
-	copyHeader(w.Header(), resp.Header)
-	w.WriteHeader(resp.StatusCode)
-	io.Copy(w, resp.Body)
-}
-
+///////////////
 
 // formatRequest generates ascii representation of a request
 func formatRequest(r *http.Request) string {

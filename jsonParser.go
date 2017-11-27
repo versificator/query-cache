@@ -4,22 +4,22 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
+	"strconv"
+
 )
 
-type rangeHour struct{
-	StartHour string `json:"$startHour"`
-	EndHour string `json:"$endHour"`
+type RangeDate struct{
+	StartHour uint32 `json:"$startHour,string"`
+	EndHour uint32 `json:"$endHour,string"`
+	StartDay time.Time `json:"$startDay,string"`
+	EndDay time.Time `json:"$endDay,string"`
 }
 
-type rangeDay struct{
-	StartDay string `json:"$startDay"`
-	EndDay string `json:"$endDay"`
-}
 
 type query struct {
 	Query      string    `json:"$query"`
-	RangeDay   rangeDay `json:"RangeDay"`
-	RangeHour  rangeHour `json:"RangeHour"`
+	Filter   RangeDate `json:"RangeDate"`
 }
 
 func  parse(rawJSON string) query {
@@ -33,17 +33,56 @@ func  parse(rawJSON string) query {
 }
 
 
+func (l *RangeDate) UnmarshalJSON(j []byte) error {
+	var rawStrings map[string]string
+
+	err := json.Unmarshal(j, &rawStrings)
+	if err != nil {
+		return err
+	}
+
+	for k, v := range rawStrings {
+		if strings.ToLower(k) == "$startHour" {
+
+			rb, err := strconv.Atoi(v)
+			l.StartHour = uint32((rb))
+			if err != nil {
+				return err
+			}
+		}
+
+		if strings.ToLower(k) == "$endHour" {
+			r, err := strconv.Atoi(v)
+			l.EndHour = uint32(r)
+			if err != nil {
+				return err
+			}
+		}
+		if strings.ToLower(k) == "$startDay" || strings.ToLower(k) == "$endDay" {
+			t, err := time.Parse("", v)
+			if err != nil {
+				return err
+			}
+			l.StartDay = t
+		}
+	}
+
+	return nil
+}
+
+
 
 func toString(buf query) string {
-	r := strings.NewReplacer("$startHour", buf.RangeHour.StartHour,
-		"$endHour", buf.RangeHour.EndHour,
-		"$startDay", buf.RangeDay.StartDay,
-		"$endDay", buf.RangeDay.EndDay)
+	r := strings.NewReplacer("$startHour", string(buf.Filter.StartHour),
+		"$endHour", string(buf.Filter.EndHour),
+		"$startDay",  buf.Filter.StartDay.Format("2006-01-02"),
+		"$endDay", buf.Filter.EndDay.Format("2006-01-02"))
 
 	result := r.Replace(buf.Query)
 	return result
+}
 
-	}
+
 
 
 

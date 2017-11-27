@@ -1,32 +1,46 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
-type rangeDate struct {
-	startTimestamp uint64
-	endTimestamp uint64
-}
   //return false if range dates are not whole hours
-func checkRangeDate(d rangeDate) (bool,bool){
-	return d.startTimestamp % 3600 ==0, d.endTimestamp % 3600 == 0
+func checkRangeDate(d RangeDate) (bool,bool){
+	return d.StartHour % 3600 ==0, d.EndHour % 3600 == 0
 }
 
-func getHourRanges(d rangeDate) []rangeDate {
-	var result []rangeDate
-	t1, t2 := checkRangeDate(d)
-	if t1 == false {
-		fmt.Errorf("start timestamp must be whole hour")
-	}
-	if t1 == true {
-		currTimestamp, nextTimestamp := d.startTimestamp, d.startTimestamp + 3600
-		for currTimestamp <= d.endTimestamp - 3600 {
-			result = append(result, rangeDate{currTimestamp, nextTimestamp})
+func getHourRanges(d RangeDate) []RangeDate {
+	var result []RangeDate
+
+	if d.StartHour != 0 && d.EndHour != 0{
+		t1, t2 := checkRangeDate(d)
+		if t1 == false {
+			fmt.Errorf("start timestamp must be whole hour")
+		}
+
+		currTimestamp, nextTimestamp := d.StartHour, d.StartHour+3600
+		for currTimestamp <= d.EndHour-3600 {
+			result = append(result, RangeDate{currTimestamp, nextTimestamp, timestamp2day(currTimestamp), timestamp2day(currTimestamp)})
 			currTimestamp = nextTimestamp
 			nextTimestamp = nextTimestamp + 3600
 		}
 		if t2 == false {
-			result = append(result, rangeDate{currTimestamp, d.endTimestamp})
+			result = append(result, RangeDate{currTimestamp, d.EndHour, timestamp2day(currTimestamp), timestamp2day(currTimestamp)})
+		}
+	} else if d.StartHour == 0 && d.EndHour == 0 && !d.StartDay.IsZero() && !d.EndDay.IsZero() {
+		start :=  d.StartDay
+		end := d.EndDay
+
+		for a := start; a==end; a = a.AddDate(0,0,1){
+			result = append(result,RangeDate{0,0,a,a.AddDate(0,0,1)})
 		}
 	}
 	return result
+}
+
+func timestamp2day(i uint32) time.Time {
+	tm := time.Unix(int64(i), 0)
+	rounded := time.Date(tm.Year(), tm.Month(), tm.Day(), 0, 0, 0, 0,  time.UTC)
+	return rounded
 }
