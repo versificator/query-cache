@@ -13,7 +13,7 @@ func checkRangeDate(d query) (bool,bool){
 func getHourRanges(d query) []query {
 	var result []query
 
-	if d.StartHour != 0 && d.EndHour != 0{
+	if d.StartHour != 0 && d.EndHour != 0 {
 		t1, t2 := checkRangeDate(d)
 		if t1 == false {
 			fmt.Errorf("start timestamp must be whole hour")
@@ -21,19 +21,23 @@ func getHourRanges(d query) []query {
 
 		currTimestamp, nextTimestamp := d.StartHour, d.StartHour+3600
 		for currTimestamp <= d.EndHour-3600 {
-			result = append(result, query{d.Query,currTimestamp, nextTimestamp, timestamp2day(currTimestamp), timestamp2day(currTimestamp)})
+			result = append(result, query{d.Query, currTimestamp, nextTimestamp, timestamp2day(currTimestamp), timestamp2day(currTimestamp)})
 			currTimestamp = nextTimestamp
 			nextTimestamp = nextTimestamp + 3600
 		}
 		if t2 == false {
-			result = append(result, query{d.Query,currTimestamp, d.EndHour, timestamp2day(currTimestamp), timestamp2day(currTimestamp)})
+			result = append(result, query{d.Query, currTimestamp, d.EndHour, timestamp2day(currTimestamp), timestamp2day(currTimestamp)})
 		}
 	} else if d.StartHour == 0 && d.EndHour == 0 && !d.StartDay.IsZero() && !d.EndDay.IsZero() {
-		start :=  d.StartDay
-		end := d.EndDay
 
-		for a := start; a==end; a = a.AddDate(0,0,1){
-			result = append(result,query{d.Query,0,0,a,a.AddDate(0,0,1)})
+		a := d.StartDay;
+		for {
+
+			result = append(result, query{d.Query, 0, 0, a, a.AddDate(0, 0, 1)})
+			if a.Equal(d.EndDay) {
+				break
+			}
+			a = a.AddDate(0, 0, 1)
 		}
 	}
 	return result

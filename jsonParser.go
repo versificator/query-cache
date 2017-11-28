@@ -37,33 +37,27 @@ func (l *query) UnmarshalJSON(j []byte) error {
 	}
 
 	for k, v := range rawStrings {
-		if strings.ToLower(k) == "$starthour" {
-
+		if strings.ToLower(k) == "$starthour" && v != "" {
 			rb, err := strconv.Atoi(v)
 			l.StartHour = uint32((rb))
 			if err != nil {
 				return err
 			}
-		}
-		if strings.ToLower(k) == "$query" {
+		} else if strings.ToLower(k) == "$query" && v != "" {
 			l.Query = v
-		}
-		if strings.ToLower(k) == "$endhour" {
+		} else if strings.ToLower(k) == "$endhour" && v != "" {
 			r, err := strconv.Atoi(v)
 			l.EndHour = uint32(r)
 			if err != nil {
 				return err
 			}
-		}
-		if strings.ToLower(k) == "$startday" {
+		} else if strings.ToLower(k) == "$startday" && v != "" {
 			t, err := time.Parse("2006-01-02", v)
 			if err != nil {
 				return err
 			}
 			l.StartDay = t
-		}
-
-		if strings.ToLower(k) == "$endday" {
+		} else if strings.ToLower(k) == "$endday" && v != "" {
 			t, err := time.Parse("2006-01-02", v)
 			if err != nil {
 				return err
@@ -71,7 +65,6 @@ func (l *query) UnmarshalJSON(j []byte) error {
 			l.EndDay = t
 		}
 	}
-
 	return nil
 }
 

@@ -35,8 +35,10 @@ func ParseClientPost(rw http.ResponseWriter, request *http.Request) {
 	fmt.Println("Request_body: ", request_body)
     q := parse(request_body)
 
-    fmt.Println(toString(q))
+    fmt.Println("Query: ", toString(q))
 	ff:=getHourRanges(q)
+
+	fmt.Println("hour ranges: ",ff)
 	for _, element := range ff {
 		fmt.Print(element.StartDay," ")
 		fmt.Print(element.EndDay," ")
@@ -47,43 +49,26 @@ func ParseClientPost(rw http.ResponseWriter, request *http.Request) {
 
 		fmt.Println(toString(d))
 
+		fmt.Println(url.QueryEscape(toString(d)))
+
 
 		req, err := http.NewRequest("GET", "http://localhost:9090?query="+url.QueryEscape(toString(d)),nil)
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
-
-		client := &http.Client{}
-		resp, err := client.Do(req)
-		f, err := ioutil.ReadAll(resp.Body)
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			fmt.Println(err)
+		}
+		fmt.Println(resp.StatusCode)
+		response, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			fmt.Print(err)
 		}
-		resp.Body.Close()
-		if err != nil {
-			fmt.Print(err)
-		}
-		fmt.Println(string(f))
+
+		fmt.Println(string(response))
 	}
-
-	req, err := http.NewRequest("GET", "http://localhost:9090?query=select%201%20union%20all%20select%202", nil)
-
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	fmt.Println(resp.StatusCode)
-	response,err := ioutil.ReadAll(resp.Body)
-	fmt.Println(string(response))
-
-
 
 	rw.WriteHeader(http.StatusOK)
 }
@@ -108,9 +93,9 @@ func formatRequest(r *http.Request) string {
 
 	// If this is a POST, add post data
 	if r.Method == "POST" {
-	r.ParseForm()
-	request = append(request, "\n")
-	request = append(request, r.Form.Encode())
+		r.ParseForm()
+		request = append(request, "\n")
+		request = append(request, r.Form.Encode())
 	}
 	// Return the request as a string
 	return strings.Join(request, "\n")
