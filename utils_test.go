@@ -4,104 +4,93 @@ import (
 	"testing"
 	"time"
 	"fmt"
+	"sort"
 )
 func TestGetHourRanges_1(t *testing.T) {
-	//t.Fatalf("unexpected in out: ")
 	tm,err := time.Parse("02-01-2006", "23-11-2017")
 
 	ti := time.Date(tm.Year(), tm.Month(), tm.Day(), 0, 0, 0, 0,  time.UTC)
 	if err != nil {fmt.Println(err)}
 
-	out := []query{query{"",1511398800, 1511402400,ti,ti},
-		query{"",1511402400, 1511406000,ti,ti},
-		query{"",1511406000, 1511409600,ti,ti},
-		query{"",1511409600, 1511413200,ti,ti},
-		query{"",1511413200, 1511416800,ti,ti},
-		query{"",1511416800, 1511420400,ti,ti},
-		query{"",1511420400, 1511424000,ti,ti},
-		query{"",1511424000, 1511427600,ti,ti},
-		query{"",1511427600, 1511431200,ti,ti},
-		query{"",1511431200, 1511434800,ti,ti},
-		query{"",1511434800, 1511438400,ti,ti},
+	out := []query{}
+	start:= uint32(1511398800)
+	for {
+		out = append(out,query{StartHour:start,EndHour:start + uint32(time.Hour/1000000000),StartDay:ti,EndDay:ti})
+		start=start + uint32(time.Hour/1000000000)
+		if start > 1511434800 {break}
 	}
 
-	in := query{"",1511398800, 1511438400,ti,ti}
-	if !testEq(getHourRanges(in), out) {
+	in := query{StartHour:1511398800, EndHour: 1511438400,StartDay:ti,EndDay:ti}
+	if !Equals(getHourRanges(in), out) {
 		t.Fatalf("unexpected in out: %q; expecting: %q", getHourRanges(in), out)
 	}
-
 }
 
 func TestGetHourRanges_2(t *testing.T) {
 	tm,err := time.Parse("02-01-2006", "23-11-2017")
-	if err != nil {fmt.Println(err)}
-
 
 	ti := time.Date(tm.Year(), tm.Month(), tm.Day(), 0, 0, 0, 0,  time.UTC)
 	if err != nil {fmt.Println(err)}
-	//t.Fatalf("unexpected in out: ")
-	out := []query{query{"",1511398800, 1511402400,ti,ti},
-		query{"",1511402400, 1511406000,ti,ti},
-		query{"",1511406000, 1511409600,ti,ti},
-		query{"",1511409600, 1511413200,ti,ti},
-		query{"",1511413200, 1511416800,ti,ti},
-		query{"",1511416800, 1511420400,ti,ti},
-		query{"",1511420400, 1511424000,ti,ti},
-		query{"",1511424000, 1511427600,ti,ti},
-		query{"",1511427600, 1511431200,ti,ti},
-		query{"",1511431200, 1511434800,ti,ti},
-		query{"",1511434800, 1511438000,ti,ti},
-	}
 
-	in := query{"",1511398800, 1511438000,ti,ti}
-	if !testEq(getHourRanges(in), out) {
+	out := []query{}
+	start:= uint32(1511398800)
+	for {
+		out = append(out,query{StartHour:start,EndHour:start + uint32(time.Hour/1000000000),StartDay:ti,EndDay:ti})
+		start=start + uint32(time.Hour/1000000000)
+		if start > 1511431200 {break}
+	}
+	out = append(out,query{StartHour:1511434800,EndHour:1511438000,StartDay:ti,EndDay:ti})
+
+	in := query{StartHour:1511398800, EndHour: 1511438000,StartDay:ti,EndDay:ti}
+	if !Equals(getHourRanges(in), out) {
 		t.Fatalf("unexpected in out: %q; expecting: %q", getHourRanges(in), out)
 	}
-
 }
 
 
 func TestGetDaysRanges_1(t *testing.T) {
-	tm_1,err := time.Parse("02-01-2006", "23-11-2017")
+	start, err := time.Parse("02-01-2006", "23-11-2017")
 	if err != nil {fmt.Println(err)}
-
-	out := []query{query{"",0, 0, tm_1.AddDate(0,0,0),tm_1.AddDate(0,0,1)},
-		query{"",0, 0,tm_1.AddDate(0,0,1),tm_1.AddDate(0,0,2)},
-		query{"",0, 0,tm_1.AddDate(0,0,2),tm_1.AddDate(0,0,3)},
-		query{"",0, 0,tm_1.AddDate(0,0,3),tm_1.AddDate(0,0,4)},
-		query{"",0, 0,tm_1.AddDate(0,0,4),tm_1.AddDate(0,0,5)},
-		query{"",0, 0,tm_1.AddDate(0,0,5),tm_1.AddDate(0,0,6)},
-		query{"",0, 0,tm_1.AddDate(0,0,6),tm_1.AddDate(0,0,7)},
-		query{"",0, 0,tm_1.AddDate(0,0,7),tm_1.AddDate(0,0,8)},
-	}
-	start,err :=time.Parse("02-01-2006", "23-11-2017")
-	end,err :=time.Parse("02-01-2006", "30-11-2017")
-	in := query{"",0, 0,start,end}
-	if !testEq(getHourRanges(in), out) {
-		t.Fatalf("unexpected in out: %q; expecting: %q", getHourRanges(in), out)
-	}
-
-}
-
-func testEq(a, b []query) bool {
-
-	if a == nil && b == nil {
-		return true
-	}
-
-	if a == nil || b == nil {
-		return false
-	}
-
-	if len(a) != len(b) {
-		return false
-	}
-
-	for i := range a {
-		if a[i] != b[i] {
-			return false
+	end, err := time.Parse("02-01-2006", "30-11-2017")
+	if err != nil {fmt.Println(err)}
+	out := []query{}
+	inc := start
+	for {
+		out = append(out, query{StartDay: inc, EndDay: inc.AddDate(0,0,1)})
+		inc = inc.AddDate(0, 0, 1)
+		if inc.After(end) {
+			break
 		}
 	}
+	in := query{StartDay: start, EndDay: end}
+	if !Equals(getHourRanges(in), out) {
+		t.Fatalf("unexpected in out: %q; expecting: %q", getHourRanges(in), out)
+	}
+}
 
+func Equals(a,b []query) bool {
+	for i := range a {
+		length := len(a) == len(b)
+		queries := a[i].Query  == b[i].Query
+		endDay := a[i].EndDay == b[i].EndDay
+		endHour := a[i].EndHour == b[i].EndHour
+		startDay := a[i].StartDay == b[i].StartDay
+		startHour := a[i].StartHour == b[i].StartHour
+		groupBy := len(a[i].GroupBy) == len(b[i].GroupBy)
+		if groupBy {// copy slices so sorting won't affect original structs
+			aGroupBy := make([]string, len(a[i].GroupBy))
+			bGroupby := make([]string, len(b[i].GroupBy))
+			copy(a[i].GroupBy, aGroupBy)
+			copy(b[i].GroupBy, bGroupby)
+			sort.Strings(aGroupBy)
+			sort.Strings(bGroupby)
+			for index, item := range aGroupBy {
+				if item != bGroupby[index] {
+					groupBy = false
+				}
+			}
+		}
+		if !(length && queries && endDay && endHour && startDay && startHour) {return false}
+	}
 	return true
 }

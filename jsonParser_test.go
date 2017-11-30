@@ -10,10 +10,12 @@ func TestParse_1(t *testing.T) {
       "$startDay":"2017-09-01",
       "$endDay":"2017-09-30",
       "$startHour":"1504224000",
-      "$endHour":"1506812400"
+      "$endHour":"1506812400",
+      "$groupBy": ["column1",
+                    "column2"]
 }`
 
-	result := parse(rawJSON)
+	result := parse([]byte(rawJSON))
 	fmt.Println(rawJSON)
 	fmt.Println(toString(result))
 	_ = result
@@ -28,7 +30,7 @@ func TestParse_2(t *testing.T) {
    "$endHour":""
 }`
 
-	result := parse(rawJSON)
+	result := parse([]byte(rawJSON))
 	fmt.Println(rawJSON)
 	fmt.Println(toString(result))
 	_ = result

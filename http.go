@@ -5,19 +5,10 @@ import (
 	"net/http"
 	"io"
 	"io/ioutil"
-	"github.com/Vertamedia/chproxy/log"
 	"strings"
 	"fmt"
 	"net/url"
 )
-
-func StartHTTP(){
-	log.Infof("Serving https")
-	http.HandleFunc("/", ParseClientPost)
-	if err := http.ListenAndServe(":8080", nil); err !=nil {
-		log.Fatalf("Server error : %s ", err)
-	}
-}
 
 func ParseClientPost(rw http.ResponseWriter, request *http.Request) {
 	if request.Body == nil {
@@ -26,33 +17,31 @@ func ParseClientPost(rw http.ResponseWriter, request *http.Request) {
 	}
 
 	rw.Header().Set("Content-Type", "application/json")
-	io.WriteString(rw, `{"alive": true}`)
 	body, _ := ioutil.ReadAll(request.Body)
 	io.WriteString(rw, string(body))
 
-	request_body := string(body)
 
-	fmt.Println("Request_body: ", request_body)
-    q := parse(request_body)
+	fmt.Println("Request_body: ", string(body))
+    q := parse(body)
 
     fmt.Println("Query: ", toString(q))
-	ff:=getHourRanges(q)
+	rangeList:=getHourRanges(q)
 
-	fmt.Println("hour ranges: ",ff)
-	for _, element := range ff {
-		fmt.Print(element.StartDay," ")
-		fmt.Print(element.EndDay," ")
-		fmt.Print(element.StartHour," ")
-		fmt.Println(element.EndHour," ")
+	fmt.Println("hour ranges: ",rangeList)
 
-		d := query{q.Query,element.StartHour,element.EndHour,element.StartDay,element.EndDay}
-
-		fmt.Println(toString(d))
-
-		fmt.Println(url.QueryEscape(toString(d)))
+	for _, element := range rangeList {
 
 
-		req, err := http.NewRequest("GET", "http://localhost:9090?query="+url.QueryEscape(toString(d)),nil)
+		query_template := query{q.Query,element.StartHour,element.EndHour,element.StartDay,element.EndDay,[]string{""}}
+
+		fmt.Println(toString(query_template))
+
+		fmt.Println(url.QueryEscape(toString(query_template)))
+
+
+		req, err := http.NewRequest("GET", "http://localhost:9090?query="+url.QueryEscape(toString(query_template)),nil)
+
+
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -66,8 +55,8 @@ func ParseClientPost(rw http.ResponseWriter, request *http.Request) {
 		if err != nil {
 			fmt.Print(err)
 		}
-
-		fmt.Println(string(response))
+		processing(response)
+		//fmt.Println(string(response))
 	}
 
 	rw.WriteHeader(http.StatusOK)
